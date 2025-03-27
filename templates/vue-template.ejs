@@ -1,0 +1,156 @@
+<template>
+  <Dialog v-model="visible" title="<%= title %>" @close="handleCancel">
+    <el-form
+      ref="ruleFormRef"
+      :model="ruleForm"
+      :rules="rules"
+      label-width="auto"
+      status-icon
+    >
+      <ElRow justify="space-between"><% formColumns.forEach(function(column) { %>
+        <ElCol :span="24">
+          <el-form-item label="<%= column.label %>" prop="<%= column.value %>"><% if (column.comType === 'ElDatePicker') { %>
+            <ElDatePicker
+              style="width: 100%"
+              v-model="ruleForm.<%= column.value %>"
+              type="datetime"
+              valueFormat="YYYY-MM-DD HH:mm:ss"
+              placeholder="请选择<%= column.label %>"
+            /><% } %><% if (column.comType === 'ElInput') { %>
+            <ElInput
+              v-model="ruleForm.<%= column.value %>"
+              type="text"
+              placeholder="请输入<%= column.label %>"
+            /><% } %><% if (column.comType === 'ElInputNumber') { %>
+            <ElInputNumber
+              style="width: 100%"
+              v-model="ruleForm.<%= column.value %>"
+              :min="0"
+              :precision="0"
+              :controls="false"
+              placeholder="请输入<%= column.label %>"
+            /><% } %> <% if (column.comType === 'ElSelect' && !column.dictName) {%>
+            <ElSelect
+              v-model="ruleForm.<%= column.value %>"
+              placeholder="请选择<%= column.label %>"
+            >
+              <ElOption label="选项1" value="1" />
+              <ElOption label="选项2" value="2" />
+            </ElSelect><% } %> <% if (column.comType === 'ElSelect' && column.dictName) {%>
+            <ElSelect
+              v-model="ruleForm.<%= column.value %>"
+              placeholder="请选择<%= column.label %>"
+            >
+              <ElOption
+                v-for="item in findDictByCode('<%= column.dictName %>')"
+                :label="item.label"
+                :value="item.value"
+              />
+            </ElSelect><% } %>
+          </el-form-item>
+        </ElCol><% }) %>
+      </ElRow>
+    </el-form>
+    <template #footer>
+      <BaseButton @click="handleCancel">取消</BaseButton>
+      <BaseButton type="primary" :loading="saveLoading" @click="save"
+        >提交</BaseButton
+      >
+    </template>
+  </Dialog>
+</template>
+
+<script setup lang="tsx">
+  import { ref, watch, reactive } from "vue";
+  import {
+    ElMessage,
+    ElForm,
+    ElFormItem,
+    ElInputNumber,
+    ElInput,
+    FormRules,
+    ElCol,
+    ElRow,
+    ElSelect,
+    ElDatePicker,
+    ElOption,
+  } from "element-plus";
+  import { BaseButton } from "@/components/Button";
+  import { Dialog } from "@/components/Dialog";
+  import { useDict } from "@/hooks/web/useDict";
+  const { findDictByCode } = useDict();
+
+  const props = defineProps({
+    dialogVisible: {
+      type: Boolean,
+      default: false,
+    },
+    isReadonly: {
+      type: Boolean,
+      default: false,
+    },
+    formData: {
+      type: Object,
+      default: () => ({}),
+    },
+  });
+
+  const emits = defineEmits(["close", "ok"]);
+  const visible = ref(false);
+  const saveLoading = ref(false);
+
+  const ruleFormRef = ref<any>(null);
+  const ruleForm = ref<any>({});
+
+  // 动态生成表单验证规则
+  const rules = {<% formColumns.forEach(function(column, index) { %>
+        "<%= column.value %>": [{"required":<% if(column.isRequired){ %> true<% }else{ %>false<% } %>, 
+        "message":<% if (column.comType === 'ElInput' || column.comType === 'ElInputNumber') { %> "请输入<%= column.label %>"<% } else if (column.comType === 'ElSelect') { %> "请选择<%= column.label %>"<% } else if (column.comType === 'ElDatePicker') { %> "请选择  <%= column.label %>"<% } %>
+      }],<% }); %>
+  };
+
+  watch(
+    () => props.dialogVisible,
+    (show) => {
+      visible.value = show;
+      if (show && Object.keys(props.formData).length) {
+        ruleForm.value = props.formData;
+      }
+    },
+    { immediate: true }
+  );
+
+  const save = () => {
+    ruleFormRef.value.validate((valid) => {
+      if (!valid) return;
+      const params = Object.assign({}, ruleForm.value);
+      saveLoading.value = true;
+      try {
+        // 这里替换为实际的 API 调用
+        saveLoading.value = false;
+        ElMessage.success("提交成功");
+        ruleFormRef.value.resetFields();
+        emits("ok");
+        visible.value = false;
+      } catch (error) {
+        saveLoading.value = false;
+      }
+    });
+  };
+
+  const handleCancel = () => {
+    visible.value = false;
+    ruleFormRef.value.resetFields();
+    emits("close");
+  };
+</script>
+
+<style lang="less" scoped>
+  .table-box {
+    margin-top: 15px;
+  }
+  :deep(.el-input-number .el-input__inner) {
+    align-items: flex-start;
+    text-align: left;
+  }
+</style>
