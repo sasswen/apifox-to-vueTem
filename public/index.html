@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue 组件生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vue 组件生成器</h1>
+    <form id="templateForm">
+        <div class="form-group">
+            <label for="title">标题：</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+            <label for="message">消息：</label>
+            <input type="text" id="message" name="message" required>
+        </div>
+        <div class="form-group">
+            <label for="formColumns">表单列（JSON 格式）：</label>
+            <textarea id="formColumns" name="formColumns" rows="5" required></textarea>
+            <small>示例：[{"label": "姓名", "prop": "name"}, {"label": "年龄", "prop": "age"}]</small>
+        </div>
+        <button type="submit">生成模板</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('templateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const message = document.getElementById('message').value;
+            let formColumns;
+            
+            try {
+                formColumns = JSON.parse(document.getElementById('formColumns').value);
+            } catch (error) {
+                showResult('表单列数据格式错误，请检查 JSON 格式', false);
+                return;
+            }
+
+            const data = {
+                title,
+                message,
+                formColumns
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/generate-template', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult('模板生成成功！', true);
+                } else {
+                    showResult(result.error || '生成失败', false);
+                }
+            } catch (error) {
+                showResult('请求失败：' + error.message, false);
+            }
+        });
+
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = isSuccess ? 'success' : 'error';
+        }
+    </script>
+</body>
+</html> 
